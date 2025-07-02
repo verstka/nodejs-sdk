@@ -1,0 +1,25 @@
+{
+  "name": "verstka-sdk-demo",
+  "version": "1.0.0",
+  "description": "Demo Express app for Verstka Node.js SDK",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "tunnel": "lt --port 3000",
+    "tunnel:custom": "lt --port 3000 --subdomain verstka-demo"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "dotenv": "^16.0.0",
+    "@verstka/nodejs-sdk": "file:../",
+    "localtunnel": "^2.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 

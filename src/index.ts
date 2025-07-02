@@ -1,0 +1,39 @@
+// Export main classes
+export { VerstkaClient } from './client.js';
+export { VerstkaAuth } from './auth.js';
+export { VerstkaContentManager } from './content.js';
+
+// Export types
+export type {
+  VerstkaConfig,
+  VerstkaApiResponse,
+  VerstkaError,
+  VerstkaSdkOptions,
+  OpenEditorParams,
+  OpenEditorResponse,
+  SaveCallbackParams,
+  CustomFields,
+} from './types.js';
+
+// Import types for function usage
+import type { VerstkaSdkOptions } from './types.js';
+import { VerstkaClient } from './client.js';
+import { VerstkaContentManager } from './content.js';
+
+// Export convenience function
+export function createVerstkaClient(options: VerstkaSdkOptions): VerstkaClient {
+  return new VerstkaClient(options);
+}
+
+
+// Export convenience function for content manager
+export function createVerstkaSDK(options: VerstkaSdkOptions) {
+  const client = new VerstkaClient(options);
+  const content = new VerstkaContentManager(client);
+  
+  return {
+    client,
+    content,
+    auth: client.getAuth(),
+  };
+} 
