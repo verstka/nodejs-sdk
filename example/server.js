@@ -18,11 +18,87 @@ const app = express();
 // Global variable to store tunnel URL
 let tunnelUrl = null;
 
-// Initialize Verstka SDK with storage
+// Initialize Verstka SDK
 const verstka = createVerstkaSDK({
   apiKey: process.env.VERSTKA_API_KEY,
   secret: process.env.VERSTKA_SECRET,
+  downloadConcurrency: 10, // Use 10 parallel downloads for this example
 });
+
+/**
+ * Handler for processing downloaded files from Verstka
+ * @param {Object} fileMap - Map of file names to temporary file paths
+ * @param {Object} callbackData - Original callback data from Verstka
+ * @param {Array} failedFiles - List of files that failed to download
+ */
+async function handleVerstkaSave(fileMap, callbackData, failedFiles) {
+  const { material_id, html_body, custom_fields } = callbackData;
+  
+  // Determine version based on custom_fields or material_id prefix
+  const isMobile = custom_fields?.mobile === 'M' || material_id.startsWith('M');
+  const versionSuffix = isMobile ? 'mobile' : 'desktop';
+  
+  // Clean material_id (remove 'M' prefix if present)
+  const cleanMaterialId = material_id.startsWith('M') ? material_id.substring(1) : material_id;
+  const folderName = `${cleanMaterialId}-${versionSuffix}`;
+  
+  console.log(`💾 [SaveHandler] Processing material: ${material_id} (${versionSuffix})`);
+  console.log(`📁 [SaveHandler] Files received:`, Object.keys(fileMap));
+  
+  // Create upload directory for this material version
+  const uploadDir = path.join('./uploads', folderName);
+  await fs.mkdir(uploadDir, { recursive: true });
+  
+  // Start with original HTML
+  let updatedHtml = html_body || '';
+  const successfulFiles = [];
+  const copyErrors = [];
+  
+  // Process each file sequentially
+  for (const [fileName, tempPath] of Object.entries(fileMap)) {
+    try {
+      const targetPath = path.join(uploadDir, fileName);
+      
+      // Copy the file
+      await fs.copyFile(tempPath, targetPath);
+      console.log(`📋 [SaveHandler] Copied: ${fileName}`);
+      
+      // Immediately replace URLs for this file in HTML
+      if (updatedHtml) {
+        updatedHtml = replaceFilePathInHtml(updatedHtml, fileName, `/uploads/${folderName}/${fileName}`);
+        console.log(`🔗 [SaveHandler] Updated HTML paths for: ${fileName}`);
+      }
+      
+      successfulFiles.push(fileName);
+      
+    } catch (error) {
+      console.error(`❌ [SaveHandler] Failed to copy ${fileName}:`, error.message);
+      copyErrors.push({ fileName, error: error.message });
+    }
+  }
+  
+  // Save updated HTML if provided
+  if (updatedHtml) {
+    const htmlPath = path.join(uploadDir, 'index.html');
+    await fs.writeFile(htmlPath, updatedHtml, 'utf8');
+    console.log(`💾 [SaveHandler] Saved updated HTML to: ${htmlPath}`);
+  }
+  
+  // Report results
+  console.log(`📊 [SaveHandler] Summary: ${successfulFiles.length}/${Object.keys(fileMap).length} files copied successfully`);
+  
+  if (failedFiles.length > 0) {
+    console.warn(`⚠️  [SaveHandler] ${failedFiles.length} files failed during download:`, 
+      failedFiles.map(f => f.fileName));
+  }
+  
+  if (copyErrors.length > 0) {
+    console.warn(`⚠️  [SaveHandler] ${copyErrors.length} files failed during copy:`, 
+      copyErrors.map(f => f.fileName));
+  }
+  
+  console.log(`🎉 [SaveHandler] Article ${material_id} (${versionSuffix}) is ready for viewing at /article/${material_id}`);
+}
 
 // Middleware
 app.use(express.json());
@@ -52,170 +128,76 @@ function getHostName() {
   return 'localhost:3000';
 }
 
+
+
 /**
- * Download files from Verstka and save them locally with parallel processing
- * @param {string} downloadUrl - Base download URL from Verstka
- * @param {string} materialId - Material ID for folder creation
- * @param {number} concurrency - Maximum number of parallel downloads (default: 10)
- * @returns {Promise<Array>} Array of download results
+ * Get article versions (desktop and mobile) for a material
+ * @param {string} materialId - Material ID
+ * @returns {Promise<{desktop: string|null, mobile: string|null}>}
  */
-async function downloadAndSaveFiles(downloadUrl, materialId, concurrency = 10) {
+async function getArticleVersions(materialId) {
+  const result = { desktop: null, mobile: null };
+  
+  // Try to read desktop version
+  const desktopPath = path.join('./uploads', `${materialId}-desktop`, 'index.html');
   try {
-    // Get list of available files
-    console.log(`📥 Getting file list from: ${downloadUrl}`);
-    const response = await fetch(downloadUrl);
-    const fileData = await response.json();
-    
-    if (fileData.rc !== 1 || !Array.isArray(fileData.data)) {
-      throw new Error(`Invalid response: ${fileData.rm || 'Unknown error'}`);
-    }
-    
-    const fileNames = fileData.data;
-    console.log(`📋 Found ${fileNames.length} files:`, fileNames);
-    
-    // Create upload directory for this material
-    const uploadDir = path.join('./uploads', materialId);
-    await fs.mkdir(uploadDir, { recursive: true });
-    
-    // Download files with concurrency limit
-    console.log(`🚀 Starting parallel download with ${concurrency} concurrent streams...`);
-    const results = await downloadFilesWithLimit(fileNames, downloadUrl, uploadDir, concurrency);
-    
-    const successCount = results.filter(r => r.success).length;
-    console.log(`🎉 Download completed: ${successCount}/${fileNames.length} files successful`);
-    
-    return results;
-    
+    await fs.access(desktopPath);
+    result.desktop = await fs.readFile(desktopPath, 'utf8');
+    console.log(`✅ Found desktop version: ${desktopPath}`);
   } catch (error) {
-    console.error('❌ Failed to get file list:', error);
-    throw error;
+    console.log(`ℹ️  Desktop version not found: ${desktopPath}`);
   }
+  
+  // Try to read mobile version
+  const mobilePath = path.join('./uploads', `${materialId}-mobile`, 'index.html');
+  try {
+    await fs.access(mobilePath);
+    result.mobile = await fs.readFile(mobilePath, 'utf8');
+    console.log(`✅ Found mobile version: ${mobilePath}`);
+  } catch (error) {
+    console.log(`ℹ️  Mobile version not found: ${mobilePath}`);
+  }
+  
+  return result;
 }
 
 /**
- * Download files with concurrency limit using batches
- * @param {Array<string>} fileNames - Array of file names to download
- * @param {string} downloadUrl - Base download URL
- * @param {string} uploadDir - Directory to save files
- * @param {number} concurrency - Maximum number of parallel downloads
- * @returns {Promise<Array>} Array of download results
+ * Replace URL for a specific file in HTML
+ * @param {string} htmlBody - HTML content to process
+ * @param {string} fileName - Name of the file to replace
+ * @param {string} newPath - New path for the file
+ * @returns {string} HTML with replaced path for the specific file
  */
-async function downloadFilesWithLimit(fileNames, downloadUrl, uploadDir, concurrency) {
-  const results = [];
+function replaceFilePathInHtml(htmlBody, fileName, newPath) {
+  if (!htmlBody || !fileName) return htmlBody;
   
-  // Process files in batches
-  for (let i = 0; i < fileNames.length; i += concurrency) {
-    const batch = fileNames.slice(i, i + concurrency);
-    console.log(`📦 Processing batch ${Math.floor(i / concurrency) + 1}/${Math.ceil(fileNames.length / concurrency)} (${batch.length} files)`);
+  // Replace /vms_images/{fileName} with new path
+  const vmsPattern = new RegExp(`\\/vms_images\\/${fileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+  return htmlBody.replace(vmsPattern, newPath);
+}
+
+// Callback endpoint for Verstka to save articles
+app.post('/api/verstka/callback', async (req, res) => {
+  try {
+    console.log('📥 [Callback] Received from Verstka:', req.body);
     
-    // Download all files in current batch in parallel
-    const batchPromises = batch.map(fileName => 
-      downloadSingleFile(fileName, downloadUrl, uploadDir)
-    );
+    // Use the new SDK method to process callback with handler
+    await verstka.content.processCallback(req.body, handleVerstkaSave);
     
-    // Wait for all files in batch to complete
-    const batchResults = await Promise.allSettled(batchPromises);
-    
-    // Extract results from Promise.allSettled format
-    batchResults.forEach(promiseResult => {
-      if (promiseResult.status === 'fulfilled') {
-        results.push(promiseResult.value);
-      } else {
-        // Handle rejected promises
-        results.push({
-          success: false,
-          fileName: 'unknown',
-          error: promiseResult.reason?.message || 'Unknown error',
-          duration: 0
-        });
-      }
+    // Respond in Verstka format
+    res.json({
+      rc: 1,
+      rm: 'Article saved successfully using SDK.'
     });
     
-    // Show progress
-    const currentSuccess = results.filter(r => r.success).length;
-    console.log(`📊 Progress: ${results.length}/${fileNames.length} processed, ${currentSuccess} successful`);
-  }
-  
-  return results;
-}
-
-/**
- * Download a single file
- * @param {string} fileName - Name of the file to download
- * @param {string} downloadUrl - Base download URL
- * @param {string} uploadDir - Directory to save the file
- * @returns {Promise<Object>} Download result
- */
-async function downloadSingleFile(fileName, downloadUrl, uploadDir) {
-  const startTime = Date.now();
-  
-  try {
-    const fileUrl = `${downloadUrl}/${fileName}`;
-    console.log(`⬇️  [${fileName}] Starting download...`);
-    
-    const fileResponse = await fetch(fileUrl);
-    if (!fileResponse.ok) {
-      throw new Error(`HTTP ${fileResponse.status}: ${fileResponse.statusText}`);
-    }
-    
-    const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
-    const filePath = path.join(uploadDir, fileName);
-    
-    await fs.writeFile(filePath, fileBuffer);
-    
-    const duration = Date.now() - startTime;
-    const sizeKB = Math.round(fileBuffer.length / 1024);
-    
-    console.log(`✅ [${fileName}] Saved: ${sizeKB}KB in ${duration}ms`);
-    
-    return {
-      success: true,
-      fileName,
-      filePath,
-      size: fileBuffer.length,
-      duration
-    };
-    
   } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`❌ [${fileName}] Failed after ${duration}ms:`, error.message);
-    
-    return {
-      success: false,
-      fileName,
-      error: error.message,
-      duration
-    };
+    console.error('❌ Error processing callback:', error);
+    res.status(500).json({
+      rc: 0,
+      rm: 'Server error: ' + error.message
+    });
   }
-}
-
-/**
- * Replace Verstka URLs in HTML with local paths
- * @param {string} htmlBody - Original HTML content
- * @param {string} materialId - Material ID for path generation
- * @param {string} hostName - Host name for generating full URLs
- * @returns {string} HTML with replaced paths
- */
-function replacePathsInHtml(htmlBody, materialId, hostName = 'localhost:3000') {
-  if (!htmlBody) return htmlBody;
-  
-  console.log(`🔄 Replacing paths in HTML for material: ${materialId}`);
-  
-  let updatedHtml = htmlBody;
-  
-  // Pattern 2: Replace /vms_images/ paths (internal Verstka paths)
-  // Matches: /vms_images/{filename}
-  const vmsImagesPattern = /\/vms_images\/([^"'\s>]+)/gi;
-  const vmsMatches = updatedHtml.match(vmsImagesPattern) || [];
-  
-  updatedHtml = updatedHtml.replace(vmsImagesPattern, (match, fileName) => {
-    const localPath = `/uploads/${materialId}/${fileName}`;
-    console.log(`🔗 [VMS Path] Replacing: ${match} → ${localPath}`);
-    return localPath;
-  });
-  
-  return updatedHtml;
-}
+});
 
 // API routes for SDK demo
 app.post('/api/edit-desktop', async (req, res) => {
@@ -223,22 +205,20 @@ app.post('/api/edit-desktop', async (req, res) => {
     console.log('Opening Verstka editor for desktop version...');
     console.log('Using callback URL:', getCallbackUrl());
     
-    // Open desktop editor
+    // Get current article versions
+    const versions = await getArticleVersions('demo');
+    
+    // Open desktop editor with current HTML
     const editorSession = await verstka.content.openEditor({
-      materialId: 'demo-article-desktop',
-      userId: 'demo-user-1',
+      materialId: 'demo',
+      userId: 'user-1',
+      htmlBody: versions.desktop || '',
       callbackUrl: getCallbackUrl(),
       hostName: getHostName(),
     });
 
-    console.log('-----> editorSession', editorSession);
-
     res.json({ 
-      success: true, 
-      message: 'Desktop editor opened successfully',
       editUrl: editorSession.data.edit_url,
-      sessionId: editorSession.data.session_id,
-      callbackUrl: getCallbackUrl()
     });
   } catch (error) {
     console.error('Error opening desktop editor:', error);
@@ -251,21 +231,24 @@ app.post('/api/edit-desktop', async (req, res) => {
 
 app.post('/api/edit-mobile', async (req, res) => {
   try {
-    // Open mobile editor using convenience method
+    console.log('Opening Verstka editor for mobile version...');
+    console.log('Using callback URL:', getCallbackUrl());
+    
+    // Get current article versions
+    const versions = await getArticleVersions('demo');
+    
+    // Open mobile editor using convenience method with current HTML
     const editorSession = await verstka.content.openMobileEditor({
-      materialId: 'demo-article-mobile',
-      userId: 'demo-user-1',
+      materialId: 'demo',
+      userId: 'user-1',
+      htmlBody: versions.mobile || '',
       callbackUrl: getCallbackUrl(),
       hostName: getHostName(),
       userIp: req.ip,
     });
 
     res.json({ 
-      success: true, 
-      message: 'Mobile editor opened successfully',
-      editUrl: editorSession.editUrl,
-      sessionId: editorSession.sessionId,
-      callbackUrl: getCallbackUrl()
+      editUrl: editorSession.data.edit_url,
     });
   } catch (error) {
     console.error('Error opening mobile editor:', error);
@@ -276,85 +259,24 @@ app.post('/api/edit-mobile', async (req, res) => {
   }
 });
 
-// Callback endpoint for Verstka to save articles
-app.post('/api/verstka/callback', async (req, res) => {
-  try {
-    console.log('📥 [Callback] Received from Verstka:', req.body);
-    
-    const downloadUrl = req.body.download_url;
-    const materialId = req.body.material_id;
-    const htmlBody = req.body.html_body;
-    
-    if (!downloadUrl || !materialId) {
-      return res.status(400).json({
-        rc: 0,
-        rm: 'Missing required parameters: download_url or material_id'
-      });
-    }
-
-    console.log(`🚀 Processing callback for material: ${materialId}`);
-    console.log(`📥 Download URL: ${downloadUrl}`);
-    
-    // Download and save files
-    const downloadResults = await downloadAndSaveFiles(downloadUrl, materialId);
-    
-    // Log download results
-    const successCount = downloadResults.filter(r => r.success).length;
-    const totalCount = downloadResults.length;
-    console.log(`📊 Download results: ${successCount}/${totalCount} files downloaded successfully`);
-    
-    // Replace paths in HTML if HTML body is provided
-    let updatedHtml = htmlBody;
-    if (htmlBody) {
-      updatedHtml = replacePathsInHtml(htmlBody, materialId, getHostName());
-      
-      // Save updated HTML to file
-      const htmlPath = path.join('./uploads', materialId, 'article.html');
-      await fs.writeFile(htmlPath, updatedHtml, 'utf8');
-      console.log(`💾 Saved updated HTML to: ${htmlPath}`);
-    }
-    
-    // Respond in Verstka format
-    res.json({
-      rc: 1,
-      rm: `Article saved successfully. Downloaded ${successCount}/${totalCount} files.`
-    });
-    
-    // Notify that content has been updated (could be used for real-time updates)
-    console.log(`🎉 Article ${materialId} is ready for viewing at /article/${materialId}`);
-    
-  } catch (error) {
-    console.error('❌ Error processing callback:', error);
-    res.status(500).json({
-      rc: 0,
-      rm: 'Server error: ' + error.message
-    });
-  }
-});
-
 // API endpoint to get article content for embedding
 app.get('/api/article-content/:materialId', async (req, res) => {
   try {
     const materialId = req.params.materialId;
-    const htmlPath = path.join('./uploads', materialId, 'article.html');
-    
     console.log(`📖 Requesting article content for: ${materialId}`);
-    console.log(`📁 Looking for file: ${htmlPath}`);
     
-    // Check if HTML file exists
-    try {
-      await fs.access(htmlPath);
-      const htmlContent = await fs.readFile(htmlPath, 'utf8');
-      
-        res.send(htmlContent); // Send full content if no body div found
-    } catch (error) {
-      console.log(`❌ Article file not found: ${materialId}`);
-      res.status(404).send('');
+    const versions = await getArticleVersions(materialId);
+    
+    if (versions.desktop || versions.mobile) {
+      res.json(versions);
+    } else {
+      console.log(`❌ No versions found for material: ${materialId}`);
+      res.status(404).json({ error: 'No article versions found' });
     }
     
   } catch (error) {
     console.error('Error getting article content:', error);
-    res.status(500).send('Server error');
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
