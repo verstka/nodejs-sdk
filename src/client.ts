@@ -38,6 +38,13 @@ export class VerstkaClient {
   }
 
   /**
+   * Get current configuration
+   */
+  getConfig(): VerstkaConfig {
+    return this.config;
+  }
+
+  /**
    * Make POST request to Verstka API
    */
   async post<T = any>(

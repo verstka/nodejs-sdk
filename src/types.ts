@@ -3,6 +3,52 @@
  */
 
 /**
+ * Callback data received from Verstka
+ */
+export interface CallbackData {
+  /** URL for downloading static content */
+  download_url: string;
+  /** Material identifier */
+  material_id: string;
+  /** Saved article HTML */
+  html_body?: string;
+  /** User ID */
+  user_id?: string;
+  /** Session identifier */
+  session_id?: string;
+  /** Custom fields */
+  custom_fields?: CustomFields;
+  /** Digital signature */
+  callback_sign?: string;
+}
+
+/**
+ * Map of file names to their temporary file paths
+ */
+export interface FileMap {
+  [fileName: string]: string;
+}
+
+/**
+ * Information about failed file download
+ */
+export interface FailedFile {
+  /** Name of the file that failed to download */
+  fileName: string;
+  /** Error message */
+  error: string;
+}
+
+/**
+ * Handler for processing downloaded files
+ */
+export type SaveHandler = (
+  fileMap: FileMap,
+  callbackData: CallbackData,
+  failedFiles: FailedFile[]
+) => Promise<void>;
+
+/**
  * Configuration for Verstka SDK
  */
 export interface VerstkaConfig {
@@ -14,6 +60,8 @@ export interface VerstkaConfig {
   baseUrl?: string;
   /** Request timeout in milliseconds */
   timeout?: number;
+  /** Number of parallel downloads (default: 20) */
+  downloadConcurrency?: number;
 }
 
 /**
@@ -120,6 +168,26 @@ export interface VerstkaError extends Error {
 export interface VerstkaSdkOptions extends VerstkaConfig {
   /** Enable debug logging */
   debug?: boolean;
+}
+
+/**
+ * Options for file downloading
+ */
+export interface DownloadOptions {
+  /** Maximum number of concurrent downloads */
+  concurrency?: number;
+  /** Request timeout in milliseconds */
+  timeout?: number;
+}
+
+/**
+ * Result of file download operation
+ */
+export interface DownloadResult {
+  /** Map of successfully downloaded files */
+  fileMap: FileMap;
+  /** List of files that failed to download */
+  failedFiles: FailedFile[];
 }
 
 // Type definitions will be added here 

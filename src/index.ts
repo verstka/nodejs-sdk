@@ -13,6 +13,12 @@ export type {
   OpenEditorResponse,
   SaveCallbackParams,
   CustomFields,
+  CallbackData,
+  FileMap,
+  FailedFile,
+  SaveHandler,
+  DownloadOptions,
+  DownloadResult,
 } from './types.js';
 
 // Import types for function usage
