@@ -79,17 +79,18 @@ export class VerstkaContentManager {
    */
   async processCallback(callbackData: CallbackData, saveHandler: SaveHandler): Promise<void> {
     const { download_url, material_id } = callbackData;
+    const logger = this.client.getLogger();
     
     if (!download_url || !material_id) {
       throw new Error('Missing required parameters: download_url or material_id');
     }
 
-    console.log(`🚀 Processing callback for material: ${material_id}`);
-    console.log(`📥 Download URL: ${download_url}`);
+    logger.info(`Processing callback for material: ${material_id}`);
+    logger.debug(`Download URL: ${download_url}`);
 
     // Create temporary directory for downloads
     const tempDir = createTempDirectory(`verstka-${material_id}`);
-    console.log(`📁 Using temporary directory: ${tempDir}`);
+    logger.debug(`Using temporary directory: ${tempDir}`);
 
     try {
       // Download files
@@ -99,27 +100,28 @@ export class VerstkaContentManager {
         {
           concurrency: this.client.getConfig().downloadConcurrency || 20,
           timeout: this.client.getConfig().timeout || 30000
-        }
+        },
+        logger
       );
 
       const successCount = Object.keys(fileMap).length;
       const totalCount = successCount + failedFiles.length;
       
-      console.log(`📊 Download results: ${successCount}/${totalCount} files downloaded successfully`);
+      logger.info(`Download results: ${successCount}/${totalCount} files downloaded successfully`);
       
       if (failedFiles.length > 0) {
-        console.warn(`⚠️  Failed files:`, failedFiles.map(f => `${f.fileName}: ${f.error}`));
+        logger.warn(`Failed files:`, failedFiles.map(f => `${f.fileName}: ${f.error}`));
       }
 
       // Call the provided saveHandler
-      console.log(`🔄 Calling saveHandler for material: ${material_id}`);
+      logger.debug(`Calling saveHandler for material: ${material_id}`);
       await saveHandler(fileMap, callbackData, failedFiles);
-      console.log(`✅ SaveHandler completed for material: ${material_id}`);
+      logger.info(`SaveHandler completed for material: ${material_id}`);
       
-      console.log(`📁 Temporary files available at: ${tempDir}`);
+      logger.debug(`Temporary files available at: ${tempDir}`);
 
     } catch (error) {
-      console.error(`❌ Error processing callback for material ${material_id}:`, error);
+      logger.error(`Error processing callback for material ${material_id}:`, error);
       throw error;
     }
   }

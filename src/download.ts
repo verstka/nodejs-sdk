@@ -12,6 +12,7 @@ import type {
   FileMap, 
   FailedFile 
 } from './types.js';
+import type { VerstkaLogger } from './logger.js';
 
 /**
  * Download files from Verstka and save them to a temporary directory
@@ -19,18 +20,20 @@ import type {
  * @param downloadUrl - Base URL for downloading files
  * @param tempDir - Temporary directory to save files
  * @param options - Download options
+ * @param logger - Optional logger instance
  * @returns Promise with download results
  */
 export async function downloadFiles(
   downloadUrl: string,
   tempDir: string,
-  options: DownloadOptions = {}
+  options: DownloadOptions = {},
+  logger?: VerstkaLogger
 ): Promise<DownloadResult> {
   const { concurrency = 20, timeout = 30000 } = options;
   
   try {
     // Get list of available files
-    console.log(`📥 Getting file list from: ${downloadUrl}`);
+    logger?.debug(`Getting file list from: ${downloadUrl}`);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -52,17 +55,17 @@ export async function downloadFiles(
     }
     
     const fileNames = fileData.data as string[];
-    console.log(`📋 Found ${fileNames.length} files:`, fileNames);
+    logger?.debug(`Found ${fileNames.length} files:`, fileNames);
     
     // Create temporary directory
     await fs.mkdir(tempDir, { recursive: true });
     
     // Download files with concurrency limit
-    console.log(`🚀 Starting parallel download with ${concurrency} concurrent streams...`);
+    logger?.debug(`Starting parallel download with ${concurrency} concurrent streams...`);
     
     const limit = pLimit(concurrency);
     const downloadPromises = fileNames.map(fileName =>
-      limit(() => downloadSingleFile(fileName, downloadUrl, tempDir, timeout))
+      limit(() => downloadSingleFile(fileName, downloadUrl, tempDir, timeout, logger))
     );
     
     const results = await Promise.allSettled(downloadPromises);
@@ -94,17 +97,17 @@ export async function downloadFiles(
     });
     
     const successCount = Object.keys(fileMap).length;
-    console.log(`🎉 Download completed: ${successCount}/${fileNames.length} files successful`);
+    logger?.info(`Download completed: ${successCount}/${fileNames.length} files successful`);
     
     if (failedFiles.length > 0) {
-      console.warn(`⚠️  ${failedFiles.length} files failed to download:`, 
+      logger?.warn(`${failedFiles.length} files failed to download:`, 
         failedFiles.map(f => f.fileName));
     }
     
     return { fileMap, failedFiles };
     
   } catch (error) {
-    console.error('❌ Failed to get file list:', error);
+    logger?.error('Failed to get file list:', error);
     throw error;
   }
 }
@@ -116,19 +119,21 @@ export async function downloadFiles(
  * @param downloadUrl - Base download URL
  * @param tempDir - Directory to save the file
  * @param timeout - Request timeout in milliseconds
+ * @param logger - Optional logger instance
  * @returns Download result
  */
 async function downloadSingleFile(
   fileName: string,
   downloadUrl: string,
   tempDir: string,
-  timeout: number
+  timeout: number,
+  logger?: VerstkaLogger
 ): Promise<{ success: true; filePath: string } | { success: false; error: string }> {
   const startTime = Date.now();
   
   try {
     const fileUrl = `${downloadUrl}/${fileName}`;
-    console.log(`⬇️  [${fileName}] Starting download...`);
+    logger?.debug(`[${fileName}] Starting download...`);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -151,7 +156,7 @@ async function downloadSingleFile(
     const duration = Date.now() - startTime;
     const sizeKB = Math.round(fileBuffer.length / 1024);
     
-    console.log(`✅ [${fileName}] Saved: ${sizeKB}KB in ${duration}ms`);
+    logger?.debug(`[${fileName}] Saved: ${sizeKB}KB in ${duration}ms`);
     
     return {
       success: true,
@@ -162,7 +167,7 @@ async function downloadSingleFile(
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    console.error(`❌ [${fileName}] Failed after ${duration}ms:`, errorMessage);
+    logger?.error(`[${fileName}] Failed after ${duration}ms:`, errorMessage);
     
     return {
       success: false,

@@ -5,23 +5,30 @@ import type {
   VerstkaSdkOptions 
 } from './types.js';
 import { VerstkaAuth } from './auth.js';
+import { VerstkaLogger, createLogger } from './logger.js';
 
 /**
  * Main Verstka API client
  */
 export class VerstkaClient {
-  private config: VerstkaConfig;
+  private config: VerstkaConfig & { debug: boolean };
   private auth: VerstkaAuth;
   private httpClient: AxiosInstance;
+  private logger: VerstkaLogger;
 
   constructor(options: VerstkaSdkOptions) {
     this.config = {
       baseUrl: 'https://verstka.org/api',
       timeout: 30000,
+      debug: false,
       ...options,
     };
     
     this.auth = new VerstkaAuth(this.config);
+    this.logger = createLogger({ 
+      debug: this.config.debug,
+      prefix: 'Verstka'
+    });
 
     this.httpClient = axios.create({
       baseURL: this.config.baseUrl!,
@@ -42,6 +49,13 @@ export class VerstkaClient {
    */
   getConfig(): VerstkaConfig {
     return this.config;
+  }
+
+  /**
+   * Get logger instance
+   */
+  getLogger(): VerstkaLogger {
+    return this.logger;
   }
 
   /**

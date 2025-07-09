@@ -2,6 +2,7 @@
 export { VerstkaClient } from './client.js';
 export { VerstkaAuth } from './auth.js';
 export { VerstkaContentManager } from './content.js';
+export { VerstkaLogger, createLogger } from './logger.js';
 
 // Export types
 export type {
@@ -20,6 +21,11 @@ export type {
   DownloadOptions,
   DownloadResult,
 } from './types.js';
+
+export type {
+  LogLevel,
+  LoggerConfig,
+} from './logger.js';
 
 // Import types for function usage
 import type { VerstkaSdkOptions } from './types.js';

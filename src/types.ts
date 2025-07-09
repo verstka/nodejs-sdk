@@ -190,4 +190,18 @@ export interface DownloadResult {
   failedFiles: FailedFile[];
 }
 
+/**
+ * Parameters for callback signature verification (snake_case format)
+ */
+export interface CallbackVerificationParams {
+  /** Material identifier */
+  material_id: string;
+  /** User ID */
+  user_id: string;
+  /** Callback URL */
+  callback_url: string;
+  /** Signature to verify */
+  callback_sign: string;
+}
+
 // Type definitions will be added here 

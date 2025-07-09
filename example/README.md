@@ -58,6 +58,34 @@ npm run tunnel
 npm run tunnel:custom
 ```
 
+## 🔍 Debug логирование
+
+Для включения подробных логов установите в `.env`:
+```
+VERSTKA_DEBUG=true
+```
+
+### С debug=true:
+```
+[Verstka] 📝 Processing callback for material: demo-article
+[Verstka] 🔍 Download URL: https://verstka.org/download/...
+[Verstka] 🔍 Using temporary directory: /tmp/verstka-demo-article-...
+[Verstka] 🔍 Found 15 files: ['index.html', 'style.css', ...]
+[Verstka] 🔍 Starting parallel download with 10 concurrent streams...
+[Verstka] 🔍 [index.html] Starting download...
+[Verstka] 🔍 [style.css] Starting download...
+[Verstka] 🔍 [index.html] Saved: 45KB in 234ms
+[Verstka] 📝 Download completed: 15/15 files successful
+[Verstka] 📝 SaveHandler completed for material: demo-article
+```
+
+### С debug=false (по умолчанию):
+```
+[Verstka] 📝 Processing callback for material: demo-article
+[Verstka] 📝 Download completed: 15/15 files successful
+[Verstka] 📝 SaveHandler completed for material: demo-article
+```
+
 ## Что демонстрирует
 
 - ✅ Интеграция Verstka SDK в Express приложение
@@ -67,6 +95,7 @@ npm run tunnel:custom
 - ✅ Проверка подписей для безопасности
 - ✅ **Автоматическое скачивание и сохранение картинок**
 - ✅ **Публичный доступ через туннель для callback'ов**
+- ✅ **Debug логирование для отладки**
 - ✅ Показ результатов на странице
 
 ## Структура

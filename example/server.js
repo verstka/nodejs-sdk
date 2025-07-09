@@ -23,6 +23,7 @@ const verstka = createVerstkaSDK({
   apiKey: process.env.VERSTKA_API_KEY,
   secret: process.env.VERSTKA_SECRET,
   downloadConcurrency: 10, // Use 10 parallel downloads for this example
+  debug: process.env.VERSTKA_DEBUG === 'true', // Enable debug logging via env variable
 });
 
 /**
