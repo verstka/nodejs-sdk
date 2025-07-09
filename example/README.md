@@ -1,71 +1,52 @@
 # Verstka SDK Demo
 
-Простое Express приложение для демонстрации работы с Verstka Node.js SDK.
+Simple Express application demonstrating how to work with Verstka Node.js SDK.
 
-## Запуск
+## Running
 
-1. Установить зависимости:
+1. Install dependencies:
 ```bash
 cd example
 npm install
 ```
 
-2. Настроить переменные окружения:
+2. Configure environment variables:
 ```bash
 cp .env.example .env
-# Отредактировать .env файл с вашими API ключами Verstka
+# Edit the .env file with your Verstka API keys
 ```
 
-3. Запустить сервер:
+3. Start the server:
 
 ```bash
-# Запуск с туннелем verstka-demo.loca.lt
+# Run with verstka-demo.loca.lt tunnel
 npm start
 
-# Разработка с автоперезагрузкой и туннелем
+# Development with auto-reload and tunnel
 npm run dev
 ```
 
-4. Открыть в браузере:
+4. Open in browser:
 ```
 http://localhost:3000
 ```
 
-## 🌐 Работа с туннелем
+## 🌐 Working with tunnel
 
-**По умолчанию** все команды используют туннель с поддоменом `verstka-demo.loca.lt`:
+**By default** all commands use tunnel with subdomain `verstka-demo.loca.lt`:
 
-- **`npm run dev`** - автоматически создает туннель `https://verstka-demo.loca.lt`
-- **Кастомный поддомен**: изменить можно в `.env` файле через `TUNNEL_SUBDOMAIN`
-- **Отключить туннель**: закомментировать строку `import localtunnel` в `server.js`
+- **`npm run dev`** - automatically creates tunnel `https://verstka-demo.loca.lt`
+- **Custom subdomain**: can be changed in `.env` file via `TUNNEL_SUBDOMAIN`
+- **Disable tunnel**: comment out the `import localtunnel` line in `server.js`
 
-### Пример вывода:
-```
-🚀 Local server running at http://localhost:3000
-⏳ Setting up tunnel...
-🌐 Tunnel created: https://verstka-demo.loca.lt
-📧 Callback URL: https://verstka-demo.loca.lt/api/verstka/callback
+## 🔍 Debug logging
 
-🎯 Ready to receive callbacks from Verstka!
-```
-
-### Дополнительные команды:
-```bash
-# Только создать туннель на порт 3000
-npm run tunnel
-
-# Создать туннель с кастомным поддоменом verstka-demo
-npm run tunnel:custom
-```
-
-## 🔍 Debug логирование
-
-Для включения подробных логов установите в `.env`:
+To enable detailed logs set in `.env`:
 ```
 VERSTKA_DEBUG=true
 ```
 
-### С debug=true:
+### With debug=true:
 ```
 [Verstka] 📝 Processing callback for material: demo-article
 [Verstka] 🔍 Download URL: https://verstka.org/download/...
@@ -79,48 +60,47 @@ VERSTKA_DEBUG=true
 [Verstka] 📝 SaveHandler completed for material: demo-article
 ```
 
-### С debug=false (по умолчанию):
+### With debug=false (default):
 ```
 [Verstka] 📝 Processing callback for material: demo-article
 [Verstka] 📝 Download completed: 15/15 files successful
 [Verstka] 📝 SaveHandler completed for material: demo-article
 ```
 
-## Что демонстрирует
+## What it demonstrates
 
-- ✅ Интеграция Verstka SDK в Express приложение
-- ✅ Открытие редактора для Desktop и Mobile версий
-- ✅ Автоматическое открытие редактора в новой вкладке
-- ✅ Обработка callback'ов от Verstka при сохранении
-- ✅ Проверка подписей для безопасности
-- ✅ **Автоматическое скачивание и сохранение картинок**
-- ✅ **Публичный доступ через туннель для callback'ов**
-- ✅ **Debug логирование для отладки**
-- ✅ Показ результатов на странице
+- ✅ Verstka SDK integration in Express application
+- ✅ Opening editor for Desktop and Mobile versions
+- ✅ Automatic editor opening in new tab
+- ✅ Handling callbacks from Verstka on save
+- ✅ Signature verification for security
+- ✅ **Automatic downloading and saving of images**
+- ✅ **Public access via tunnel for callbacks**
+- ✅ **Debug logging for troubleshooting**
+- ✅ Showing results on page
 
-## Структура
+## Structure
 
 ```
 example/
-├── server.js             # 🚀 Express сервер с автоматическим туннелем
+├── server.js             # 🚀 Express server with automatic tunnel
 ├── public/
-│   ├── index.html        # Главная страница
-│   └── script.js         # Логика кнопок
-├── uploads/              # 📁 Сохраненные файлы из Verstka
-│   ├── demo-article-desktop/  # Файлы desktop версии
-│   └── demo-article-mobile/   # Файлы mobile версии
-├── data.json             # Демо данные
-└── package.json          # Зависимости
+│   ├── index.html        # Main page
+│   └── script.js         # Button logic
+├── uploads/              # 📁 Saved files from Verstka
+│   ├── demo-article-desktop/  # Desktop version files
+│   └── demo-article-mobile/   # Mobile version files
+└── package.json          # Dependencies
 ```
 
-## 🚀 Быстрый старт
+## 🚀 Quick start
 
 ```bash
 cd example
 npm install
 cp .env.example .env
-# Заполнить API ключи в .env
+# Fill in API keys in .env
 npm run dev
 ```
 
-Готово! Теперь по адресу `https://verstka-demo.loca.lt` доступен твой локальный сервер. 
+Done! Now your local server is available at `https://verstka-demo.loca.lt`. 
