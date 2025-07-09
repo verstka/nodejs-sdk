@@ -29,6 +29,36 @@ const editorResponse = await verstka.content.openEditor({
 });
 
 console.log('Editor URL:', editorResponse.editUrl);
+
+// Process callback after article save
+await verstka.content.processCallback(
+  {
+    download_url: 'https://verstka.org/api/download/session-id',
+    material_id: 'article-123',
+    html_body: '<article>Your saved content</article>',
+    user_id: 'user-456',
+    session_id: 'session-id-123',
+    custom_fields: {},
+    callback_sign: 'verification-signature'
+  },
+  async ({ fileMap, callbackData, failedFiles, isMobile }) => {
+    // Handle downloaded files
+    console.log('Downloaded files:', Object.keys(fileMap));
+    console.log('Article HTML:', callbackData.html_body);
+    console.log('Is mobile version:', isMobile);
+    
+    // Save files to your storage
+    for (const [fileName, filePath] of Object.entries(fileMap)) {
+      // Process each file (copy to final destination, upload to CDN, etc.)
+      console.log(`File ${fileName} available at: ${filePath}`);
+    }
+    
+    // Handle failed downloads if any
+    if (failedFiles.length > 0) {
+      console.warn('Some files failed to download:', failedFiles);
+    }
+  }
+);
 ```
 
 ## License
