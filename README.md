@@ -61,6 +61,13 @@ await verstka.content.processCallback(
 );
 ```
 
+## Example
+
+For a complete working example, see the [example directory](./example) which includes:
+- Express.js server setup
+- File upload handling 
+- Callback processing implementation
+
 ## License
 
 MIT
