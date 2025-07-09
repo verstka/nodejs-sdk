@@ -40,13 +40,23 @@ export interface FailedFile {
 }
 
 /**
+ * Parameters passed to SaveHandler
+ */
+export interface SaveHandlerParams {
+  /** Map of file names to their temporary file paths */
+  fileMap: FileMap;
+  /** Original callback data from Verstka */
+  callbackData: CallbackData;
+  /** List of files that failed to download */
+  failedFiles: FailedFile[];
+  /** Whether this is a mobile version */
+  isMobile: boolean;
+}
+
+/**
  * Handler for processing downloaded files
  */
-export type SaveHandler = (
-  fileMap: FileMap,
-  callbackData: CallbackData,
-  failedFiles: FailedFile[]
-) => Promise<void>;
+export type SaveHandler = (params: SaveHandlerParams) => Promise<void>;
 
 /**
  * Configuration for Verstka SDK

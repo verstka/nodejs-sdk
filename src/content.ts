@@ -8,6 +8,7 @@ import type {
   CustomFields,
   CallbackData,
   SaveHandler,
+  SaveHandlerParams,
 } from './types.js';
 import { VerstkaClient } from './client.js';
 import { downloadFiles, createTempDirectory } from './download.js';
@@ -78,14 +79,20 @@ export class VerstkaContentManager {
    * @param saveHandler - Function to handle downloaded files
    */
   async processCallback(callbackData: CallbackData, saveHandler: SaveHandler): Promise<void> {
-    const { download_url, material_id } = callbackData;
+    const { download_url, material_id, custom_fields } = callbackData;
     const logger = this.client.getLogger();
     
     if (!download_url || !material_id) {
       throw new Error('Missing required parameters: download_url or material_id');
     }
 
-    logger.info(`Processing callback for material: ${material_id}`);
+    // Determine if this is a mobile version
+    const isMobile = custom_fields?.mobile === 'M' || material_id.startsWith('M');
+    
+    // Clean material_id (remove 'M' prefix if present)
+    const cleanMaterialId = material_id.startsWith('M') ? material_id.substring(1) : material_id;
+
+    logger.info(`Processing callback for material: ${material_id} (${isMobile ? 'mobile' : 'desktop'})`);
     logger.debug(`Download URL: ${download_url}`);
 
     // Create temporary directory for downloads
@@ -113,9 +120,17 @@ export class VerstkaContentManager {
         logger.warn(`Failed files:`, failedFiles.map(f => `${f.fileName}: ${f.error}`));
       }
 
-      // Call the provided saveHandler
+      // Call the provided saveHandler with parameters object
       logger.debug(`Calling saveHandler for material: ${material_id}`);
-      await saveHandler(fileMap, callbackData, failedFiles);
+      await saveHandler({
+        fileMap,
+        callbackData: {
+          ...callbackData,
+          material_id: cleanMaterialId,
+        },
+        failedFiles,
+        isMobile,
+      });
       logger.info(`SaveHandler completed for material: ${material_id}`);
       
       logger.debug(`Temporary files available at: ${tempDir}`);
