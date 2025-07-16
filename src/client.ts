@@ -17,8 +17,10 @@ export class VerstkaClient {
   private logger: VerstkaLogger;
 
   constructor(options: VerstkaSdkOptions) {
+    const defaultBaseUrl = options.dev ? 'https://dev.verstka.org/api' : 'https://verstka.org/api';
+    
     this.config = {
-      baseUrl: 'https://verstka.org/api',
+      baseUrl: defaultBaseUrl,
       timeout: 30000,
       debug: false,
       ...options,

@@ -178,6 +178,9 @@ export interface VerstkaError extends Error {
 export interface VerstkaSdkOptions extends VerstkaConfig {
   /** Enable debug logging */
   debug?: boolean;
+  
+  /** Enable development mode */
+  dev?: boolean;
 }
 
 /**

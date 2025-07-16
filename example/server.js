@@ -52,7 +52,7 @@ app.post('/api/verstka/callback', async (req, res) => {
     /**
      * Use Verstka SDK method to process callback with handler
      */
-    await verstka.content.processCallback(req.body, handleVerstkaSave);
+    await verstka.content.save(req.body, handleVerstkaSave);
     
     /**
      * Respond in Verstka format
@@ -133,7 +133,6 @@ app.post('/api/edit-mobile', async (req, res) => {
       htmlBody: versions.mobile || '',
       callbackUrl: getCallbackUrl(),
       hostName: getHostName(),
-      userIp: req.ip,
     });
 
     res.json({ 

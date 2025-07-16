@@ -78,7 +78,7 @@ export class VerstkaContentManager {
    * @param callbackData - Data received from Verstka callback
    * @param saveHandler - Function to handle downloaded files
    */
-  async processCallback(callbackData: CallbackData, saveHandler: SaveHandler): Promise<void> {
+  async save(callbackData: CallbackData, saveHandler: SaveHandler): Promise<void> {
     const { download_url, material_id, custom_fields } = callbackData;
     const logger = this.client.getLogger();
     

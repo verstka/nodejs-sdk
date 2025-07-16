@@ -31,7 +31,7 @@ const editorResponse = await verstka.content.openEditor({
 console.log('Editor URL:', editorResponse.editUrl);
 
 // Process callback after article save
-await verstka.content.processCallback(
+await verstka.content.save(
   {
     download_url: 'https://verstka.org/api/download/session-id',
     material_id: 'article-123',
