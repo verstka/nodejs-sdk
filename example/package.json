@@ -13,7 +13,7 @@
   "dependencies": {
     "express": "^4.18.0",
     "dotenv": "^16.0.0",
-    "@verstka/nodejs-sdk": "file:../",
+    "verstka-nodejs-sdk": "file:../",
     "localtunnel": "^2.0.2"
   },
   "devDependencies": {

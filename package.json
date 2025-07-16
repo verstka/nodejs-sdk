@@ -1,5 +1,5 @@
 {
-  "name": "@verstka/nodejs-sdk",
+  "name": "verstka-nodejs-sdk",
   "version": "1.0.0",
   "description": "Node.js SDK for Verstka editor integration",
   "type": "module",

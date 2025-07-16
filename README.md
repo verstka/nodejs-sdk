@@ -5,13 +5,13 @@ Node.js SDK for Verstka editor integration.
 ## Installation
 
 ```bash
-npm install @verstka/nodejs-sdk
+npm install verstka-nodejs-sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { createVerstkaSDK } from '@verstka/nodejs-sdk';
+import { createVerstkaSDK } from 'verstka-nodejs-sdk';
 
 // Initialize SDK
 const verstka = createVerstkaSDK({
