@@ -4,6 +4,7 @@
 
 import type {
   OpenEditorParams,
+  GetEditorUrlParams,
   OpenEditorResponse,
   CustomFields,
   CallbackData,
@@ -24,18 +25,49 @@ export class VerstkaContentManager {
   }
 
   /**
-   * Open Verstka editor for a material
+   * Unified method to get editor URL for desktop or mobile version
+   * Replaces openEditor and openMobileEditor methods with single interface
    * 
-   * @param params - Parameters for opening editor
-   * @returns Editor session data with edit URL
+   * @param params - Parameters including isMobile flag to determine editor type
+   * @returns Editor URL for opening the editor
    */
-  async openEditor(params: OpenEditorParams): Promise<OpenEditorResponse> {
-    // Generate callback signature
-    const callbackSign = this.client.getAuth().generateCallbackSignature(params);
+  async getEditorUrl(params: GetEditorUrlParams): Promise<string> {
+    const { isMobile, customFields, ...baseParams } = params;
+    
+    /**
+     * Prepare material ID based on mobile flag
+     */
+    const materialId = isMobile 
+      ? (params.materialId.startsWith('M') ? params.materialId : `M${params.materialId}`)
+      : params.materialId;
 
-    // Prepare form data
+    /**
+     * Prepare custom fields with mobile flag
+     */
+    const finalCustomFields: CustomFields = {
+      ...customFields,
+      mobile: (isMobile ? 'M' : '') as CustomFields['mobile'],
+    };
+
+    /**
+     * Build OpenEditorParams for signature generation
+     */
+    const editorParams: OpenEditorParams = {
+      ...baseParams,
+      materialId,
+      customFields: finalCustomFields,
+    };
+
+    /**
+     * Generate callback signature
+     */
+    const callbackSign = this.client.getAuth().generateCallbackSignature(editorParams);
+
+    /**
+     * Prepare form data
+     */
     const formData = this.client.createFormData({
-      material_id: params.materialId,
+      material_id: materialId,
       user_id: params.userId,
       html_body: params.htmlBody || '',
       'api-key': this.client.getAuth().getApiKey(),
@@ -43,32 +75,15 @@ export class VerstkaContentManager {
       host_name: params.hostName,
       user_ip: params.userIp,
       callback_sign: callbackSign,
-      custom_fields: params.customFields ? JSON.stringify(params.customFields) : undefined,
+      custom_fields: finalCustomFields ? JSON.stringify(finalCustomFields) : undefined,
     });
 
-    // Make API request
-    const response = await this.client.post<OpenEditorResponse>('/open', formData);
+    /**
+     * Make API request
+     */
+    const response = await this.client.post<{data: {edit_url: string}}>('/open', formData);
 
-    return response.data!;
-  }
-
-  /**
-   * Open editor for mobile version
-   * Convenience method that sets mobile: true in custom fields
-   */
-  async openMobileEditor(params: Omit<OpenEditorParams, 'customFields'> & { 
-    customFields?: CustomFields 
-  }): Promise<OpenEditorResponse> {
-    const mobileParams: OpenEditorParams = {
-      ...params,
-      materialId: params.materialId.startsWith('M') ? params.materialId : `M${params.materialId}`,
-      customFields: {
-        mobile: 'M',
-        ...params.customFields,
-      },
-    };
-
-    return this.openEditor(mobileParams);
+    return response.data?.data?.edit_url || '';
   }
 
   /**

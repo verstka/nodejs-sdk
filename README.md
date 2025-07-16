@@ -21,17 +21,18 @@ const verstka = createVerstkaSDK({
 });
 
 // Open editor
-const editorResponse = await verstka.content.openEditor({
+const editorResponse = await verstka.getEditorUrl({
   materialId: 'article-123',
   userId: 'user-456',
   callbackUrl: 'https://your-site.com/verstka/callback',
   hostName: 'your-site.com',
+  isMobile: false,
 });
 
-console.log('Editor URL:', editorResponse.editUrl);
+console.log('Editor URL:', editorResponse.data.edit_url);
 
 // Process callback after article save
-await verstka.content.save(
+await verstka.save(
   {
     download_url: 'https://verstka.org/api/download/session-id',
     material_id: 'article-123',

@@ -52,7 +52,7 @@ app.post('/api/verstka/callback', async (req, res) => {
     /**
      * Use Verstka SDK method to process callback with handler
      */
-    await verstka.content.save(req.body, handleVerstkaSave);
+    await verstka.save(req.body, handleVerstkaSave);
     
     /**
      * Respond in Verstka format
@@ -85,9 +85,9 @@ app.post('/api/edit-desktop', async (req, res) => {
     const versions = await getArticleVersions('demo');
     
     /**
-     * Open desktop editor with current HTML
+     * Open desktop editor with current HTML using unified getEditorUrl method
      */
-    const editorSession = await verstka.content.openEditor({
+    const editorUrl = await verstka.getEditorUrl({
       materialId: 'demo',
       userId: 'user-1',
       htmlBody: versions.desktop || '',
@@ -100,7 +100,7 @@ app.post('/api/edit-desktop', async (req, res) => {
      * for web to open editor in new tab
      */
     res.json({ 
-      editUrl: editorSession.data.edit_url,
+      editUrl: editorUrl,
     });
   } catch (error) {
     console.error('Error opening desktop editor:', error);
@@ -125,18 +125,19 @@ app.post('/api/edit-mobile', async (req, res) => {
     const versions = await getArticleVersions('demo');
     
     /**
-     * Open mobile editor with current HTML
+     * Open mobile editor with current HTML using unified getEditorUrl method
      */
-    const editorSession = await verstka.content.openMobileEditor({
+    const editorUrl = await verstka.getEditorUrl({
       materialId: 'demo',
       userId: 'user-1',
       htmlBody: versions.mobile || '',
       callbackUrl: getCallbackUrl(),
       hostName: getHostName(),
+      isMobile: true,
     });
 
     res.json({ 
-      editUrl: editorSession.data.edit_url,
+      editUrl: editorUrl,
     });
   } catch (error) {
     console.error('Error opening mobile editor:', error);

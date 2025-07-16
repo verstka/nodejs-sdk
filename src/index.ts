@@ -10,7 +10,7 @@ export type {
   VerstkaApiResponse,
   VerstkaError,
   VerstkaSdkOptions,
-  OpenEditorParams,
+  GetEditorUrlParams,
   OpenEditorResponse,
   SaveCallbackParams,
   CustomFields,
@@ -41,11 +41,10 @@ export function createVerstkaClient(options: VerstkaSdkOptions): VerstkaClient {
 // Export convenience function for content manager
 export function createVerstkaSDK(options: VerstkaSdkOptions) {
   const client = new VerstkaClient(options);
-  const content = new VerstkaContentManager(client);
+  const contentManager = new VerstkaContentManager(client);
   
   return {
-    client,
-    content,
-    auth: client.getAuth(),
+    save: contentManager.save.bind(contentManager),
+    getEditorUrl: contentManager.getEditorUrl.bind(contentManager),
   };
 } 

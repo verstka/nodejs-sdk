@@ -87,7 +87,8 @@ export interface VerstkaApiResponse<T = any> {
 }
 
 /**
- * Parameters for opening editor
+ * Parameters for opening editor (internal use only)
+ * @internal
  */
 export interface OpenEditorParams {
   /** Material identifier (unique non-zero) */
@@ -104,6 +105,28 @@ export interface OpenEditorParams {
   userIp?: string;
   /** Additional custom fields */
   customFields?: CustomFields;
+}
+
+/**
+ * Parameters for unified getEditorUrl method
+ */
+export interface GetEditorUrlParams {
+  /** Material identifier (unique non-zero) */
+  materialId: string;
+  /** Current user ID */
+  userId: string;
+  /** HTML body of the article */
+  htmlBody?: string;
+  /** Callback URL for saving */
+  callbackUrl: string;
+  /** Host name for downloading images */
+  hostName: string;
+  /** Whether to open mobile editor */
+  isMobile: boolean;
+  /** IP address of current user */
+  userIp?: string;
+  /** Additional custom fields (mobile field will be set automatically) */
+  customFields?: Omit<CustomFields, 'mobile'>;
 }
 
 /**
