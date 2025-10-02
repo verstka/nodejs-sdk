@@ -27,6 +27,9 @@ const editorResponse = await verstka.getEditorUrl({
   callbackUrl: 'https://your-site.com/verstka/callback',
   hostName: 'your-site.com',
   isMobile: false,
+  customFields: {
+    'fonts.css': '/static/fonts.css'
+  }
 });
 
 console.log('Editor URL:', editorResponse.data.edit_url);

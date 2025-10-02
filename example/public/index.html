@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://go.verstka.org/critical.css" rel="stylesheet" />
+    <script src="//go.verstka.org/api.js" async type="text/javascript"></script>
+    <title>Verstka SDK Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            min-width: 150px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        .article-content {
+            margin-top: 30px;
+            width: 100%;
+        }
+        
+        /* Desktop version - show on large screens */
+        .desktop-version {
+            display: block;
+        }
+        .mobile-version {
+            display: none;
+        }
+        
+        /* Mobile version - show on small screens */
+        @media (max-width: 768px) {
+            .desktop-version {
+                display: none;
+            }
+            .mobile-version {
+                display: block;
+            }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .no-content {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Verstka SDK Demo</h1>
+        
+        <div class="buttons">
+            <button class="btn btn-primary" onclick="openDesktopEditor()">
+                📱 Open Desktop Editor
+            </button>
+            <button class="btn btn-secondary" onclick="openMobileEditor()">
+                📱 Open Mobile Editor
+            </button>
+        </div>
+
+        <div id="message"></div>
+    </div>
+
+    <div class="article-content">
+        <div id="desktopContent" class="desktop-version">
+            <div class="loading">Loading desktop content...</div>
+        </div>
+        
+        <div id="mobileContent" class="mobile-version">
+            <div class="loading">Loading mobile content...</div>
+        </div>
+    </div>
+
+    <script>
+        let lastModified = null;
+        let autoRefreshInterval = null;
+
+        // Load article content on page load
+        window.onload = function() {
+            loadArticleContent();
+        };
+
+        async function openDesktopEditor() {
+            try {
+                showMessage('Opening desktop editor...', 'info');
+                const response = await fetch('/api/edit-desktop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const result = await response.json();
+
+                window.open(result.editUrl, '_blank');
+               
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function openMobileEditor() {
+            try {
+                showMessage('Opening mobile editor...', 'info');
+                const response = await fetch('/api/edit-mobile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const result = await response.json();
+                
+                window.open(result.editUrl, '_blank');
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadArticleContent() {
+            const desktopDiv = document.getElementById('desktopContent');
+            const mobileDiv = document.getElementById('mobileContent');
+            
+            try {
+                const response = await fetch('/api/article-content/demo');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                // Load versions
+                desktopDiv.innerHTML = data.desktop || '<div class="no-content">Desktop version not available</div>';
+                mobileDiv.innerHTML = data.mobile || '<div class="no-content">Mobile version not available</div>';
+
+                initVerstka();
+                
+            } catch (error) {
+                const errorHtml = `<div class="error">Error loading article: ${error.message}</div>`;
+                desktopDiv.innerHTML = errorHtml;
+                mobileDiv.innerHTML = errorHtml;
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
+            messageDiv.innerHTML = `<div class="${className}">${message}</div>`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function initVerstka() {
+            if (window.VMS_API) {
+                window.VMS_API.Article.enable ({
+                    display_mode: 'default'
+                });
+            } else {
+                window.onVMSAPIReady = function (api) {
+                    api.Article.enable ({
+                        display_mode: 'default'
+                    });
+                };
+            }
+        }
+    </script>
+</body>
+</html> 

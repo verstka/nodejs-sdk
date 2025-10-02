@@ -93,6 +93,9 @@ app.post('/api/edit-desktop', async (req, res) => {
       htmlBody: versions.desktop || '',
       callbackUrl: getCallbackUrl(),
       hostName: getHostName(),
+      customFields: {
+        'fonts.css': '/fonts.css',
+      },
     });
 
     /**
@@ -134,6 +137,9 @@ app.post('/api/edit-mobile', async (req, res) => {
       callbackUrl: getCallbackUrl(),
       hostName: getHostName(),
       isMobile: true,
+      customFields: {
+        'fonts.css': '/fonts.css',
+      },
     });
 
     res.json({ 

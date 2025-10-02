@@ -1,6 +1,6 @@
 {
   "name": "verstka-nodejs-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Node.js SDK for Verstka editor integration",
   "type": "module",
   "main": "./dist/index.js",
